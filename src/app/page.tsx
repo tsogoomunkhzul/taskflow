@@ -1,6 +1,6 @@
 "use client";
+import { useEffect, useState } from "react";
 
-import { useState } from "react";
 
 type Task = {
   id: number;
@@ -55,8 +55,31 @@ const columns = [
 ] as const;
 
 export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+
   const [activeNav, setActiveNav] = useState("Overview");
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
+  const [selectedProject, setSelectedProject] = useState("All Projects");
+
+  useEffect(() => {
+    const savedTasks = localStorage.getItem("taskflow-tasks");
+
+    if (savedTasks !== null) {
+      try {
+        setTasks(JSON.parse(savedTasks));
+      } catch {
+        setTasks(initialTasks);
+      }
+    }
+
+    setTasksLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!tasksLoaded) return;
+
+    localStorage.setItem("taskflow-tasks", JSON.stringify(tasks));
+  }, [tasks, tasksLoaded]);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [newTask, setNewTask] = useState("");
@@ -75,11 +98,17 @@ export default function Home() {
     (task) => task.status === "progress"
   ).length;
 
-  const filteredTasks = tasks.filter(
-    (task) =>
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch =
       task.title.toLowerCase().includes(search.toLowerCase()) ||
-      task.project.toLowerCase().includes(search.toLowerCase())
-  );
+      task.project.toLowerCase().includes(search.toLowerCase());
+
+    const matchesProject =
+      selectedProject === "All Projects" ||
+      task.project === selectedProject;
+
+    return matchesSearch && matchesProject;
+  });
 
   function addTask(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -404,7 +433,7 @@ export default function Home() {
                         type="button"
                         onClick={() => setEditingTask(null)}
                       >
-                        Cancel 
+                        Cancel
                       </button>
 
                       <button type="submit">
