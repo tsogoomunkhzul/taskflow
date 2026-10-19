@@ -62,6 +62,10 @@ export default function Home() {
   const [newTask, setNewTask] = useState("");
   const [newPriority, setNewPriority] =
     useState<Task["priority"]>("Medium");
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editPriority, setEditPriority] =
+    useState<Task["priority"]>("Medium");
 
   const completed = tasks.filter(
     (task) => task.status === "done"
@@ -106,6 +110,37 @@ export default function Home() {
     );
   }
 
+  function deleteTask(id: number) {
+    setTasks((current) =>
+      current.filter((task) => task.id !== id)
+    );
+  }
+  function startEditing(task: Task) {
+    setEditingTask(task);
+    setEditTitle(task.title);
+    setEditPriority(task.priority);
+  }
+
+  function saveEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingTask || !editTitle.trim()) return;
+
+    setTasks((current) =>
+      current.map((task) =>
+        task.id === editingTask.id
+          ? {
+            ...task,
+            title: editTitle.trim(),
+            priority: editPriority,
+          }
+          : task
+      )
+    );
+
+    setEditingTask(null);
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -126,9 +161,8 @@ export default function Home() {
           ].map(([label, icon]) => (
             <button
               key={label}
-              className={`nav-item ${
-                activeNav === label ? "active" : ""
-              }`}
+              className={`nav-item ${activeNav === label ? "active" : ""
+                }`}
               onClick={() => setActiveNav(label)}
             >
               <span className="nav-icon">{icon}</span>
@@ -300,11 +334,10 @@ export default function Home() {
               <div className="mini-progress">
                 <span
                   style={{
-                    width: `${
-                      tasks.length
-                        ? (completed / tasks.length) * 100
-                        : 0
-                    }%`,
+                    width: `${tasks.length
+                      ? (completed / tasks.length) * 100
+                      : 0
+                      }%`,
                   }}
                 />
               </div>
@@ -325,6 +358,62 @@ export default function Home() {
             </div>
 
             <div className="kanban-board">
+              {editingTask && (
+                <div className="task-form-overlay">
+                  <form
+                    className="task-form"
+                    onSubmit={saveEdit}
+                  >
+                    <h2>Edit Task</h2>
+
+                    <label htmlFor="edit-title">
+                      Task Title
+                    </label>
+
+                    <input
+                      id="edit-title"
+                      type="text"
+                      value={editTitle}
+                      onChange={(event) =>
+                        setEditTitle(event.target.value)
+                      }
+                      placeholder="Enter task title"
+                      required
+                    />
+
+                    <label htmlFor="edit-priority">
+                      Priority
+                    </label>
+
+                    <select
+                      id="edit-priority"
+                      value={editPriority}
+                      onChange={(event) =>
+                        setEditPriority(
+                          event.target.value as Task["priority"]
+                        )
+                      }
+                    >
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
+
+                    <div className="task-form-actions">
+                      <button
+                        type="button"
+                        onClick={() => setEditingTask(null)}
+                      >
+                        Cancel 
+                      </button>
+
+                      <button type="submit">
+                        Save Changes
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
               {columns.map((column) => {
                 const columnTasks = filteredTasks.filter(
                   (task) => task.status === column.id
@@ -364,9 +453,25 @@ export default function Home() {
                             </span>
                             <button
                               className="task-menu"
-                              aria-label={`Options for ${task.title}`}
+                              onClick={() => startEditing(task)}
                             >
-                              ···
+                              Edit
+                            </button>
+                            <button
+                              className="task-menu"
+                              aria-label={`Delete ${task.title}`}
+                              title="Delete task"
+                              onClick={() => {
+                                const confirmed = window.confirm(
+                                  `Are you sure you want to delete "${task.title}"?`
+                                );
+
+                                if (confirmed) {
+                                  deleteTask(task.id);
+                                }
+                              }}
+                            >
+                              ×
                             </button>
                           </div>
 
